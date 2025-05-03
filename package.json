@@ -2,9 +2,9 @@
   "name": "LIZAMWOL",
   "version": "1.0.0",
   "description": "WhatsApp Bot",
-  "main": "start.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node start.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "docker:build": "docker build -t LIZAMWOL .",
     "docker:run": "docker run -e SESSION_ID=$SESSION_ID LIZAMWOL"
