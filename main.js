@@ -9,6 +9,7 @@ const ytdl = require('ytdl-core');
 const path = require('path');
 const axios = require('axios');
 const ffmpeg = require('fluent-ffmpeg');
+const { addWelcome, delWelcome, isWelcomeOn, addGoodbye, delGoodBye, isGoodByeOn } = require('./lib/index');
 
 // Command imports
 const tagAllCommand = require('./commands/tagall');
@@ -80,6 +81,14 @@ const textmakerCommand = require('./commands/textmaker');
 const { handleAntideleteCommand, handleMessageRevocation, storeMessage } = require('./commands/antidelete');
 const clearTmpCommand = require('./commands/cleartmp');
 const setProfilePicture = require('./commands/setpp');
+const instagramCommand = require('./commands/instagram');
+const facebookCommand = require('./commands/facebook');
+const playCommand = require('./commands/play');
+const tiktokCommand = require('./commands/tiktok');
+const songCommand = require('./commands/song');
+const aiCommand = require('./commands/ai');
+
+
 
 // Global settings
 global.packname = settings.packname;
@@ -99,6 +108,7 @@ const channelInfo = {
         }
     }
 };
+
 
 async function handleMessages(sock, messageUpdate, printLog) {
     try {
@@ -610,82 +620,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
             case userMessage.startsWith('.tg') || userMessage.startsWith('.stickertelegram') || userMessage.startsWith('.tgsticker') || userMessage.startsWith('.telesticker'):
                 await stickerTelegramCommand(sock, chatId, message);
                 break;
-            case userMessage.startsWith('.play') || userMessage.startsWith('.song') || userMessage.startsWith('.mp3') || userMessage.startsWith('.ytmp3') || userMessage.startsWith('.yts'):
-                try {
-                    const text = userMessage.split(' ').slice(1).join(' ');
-                    if (!text) {
-                        await sock.sendMessage(chatId, {
-                            text: `✅ Please specify the song you want to download!\n\nExample: .play Sia Unstoppable`,
-                            ...channelInfo
-                        });
-                        return;
-                    }
 
-
-
-                    const search = await yts(text);
-                    if (!search.all || search.all.length === 0) {
-                        await sock.sendMessage(chatId, {
-                            text: '❌ No results found!',
-                            ...channelInfo
-                        });
-                        return;
-                    }
-
-                    const video = search.all[0];
-                    const link = video.url;
-
-                    // Generate the API URL
-                    const apiUrl = `https://apis-keith.vercel.app/download/dlmp3?url=${link}`;
-
-                    // Fetch the audio data from the API
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        await sock.sendMessage(chatId, {
-                            text: '❌ Failed to fetch data from the API. Please try again.',
-                            ...channelInfo
-                        });
-                        return;
-                    }
-
-                    const data = await response.json();
-
-                    if (data.status && data.result) {
-                        const { title, downloadUrl, format, quality } = data.result;
-                        const thumbnail = video.thumbnail;
-
-                        // Send a message with song details and thumbnail
-                        await sock.sendMessage(chatId, {
-                            image: { url: thumbnail },
-                            caption: `
-╭═════════════════⊷
-║ *Title*: ${title}
-╰═════════════════⊷
-*🎵 Downloading song...*`,
-                            ...channelInfo
-                        });
-
-                        // Send the audio file
-                        await sock.sendMessage(chatId, {
-                            audio: { url: downloadUrl },
-                            mimetype: "audio/mp4"
-                        });
-
-
-
-                    } else {
-                        await sock.sendMessage(chatId, {
-                            text: '❌ Unable to fetch the song. Please try again later.',
-                            ...channelInfo
-                        });
-                    }
-                } catch (error) {
-                    await sock.sendMessage(chatId, {
-                        text: `❌ An error occurred: ${error.message}`,
-                        ...channelInfo
-                    });
-                }
-                break;
             case userMessage === '.vv':
                 await viewOnceCommand(sock, chatId, message);
                 break;
@@ -772,6 +707,24 @@ async function handleMessages(sock, messageUpdate, printLog) {
             case userMessage === '.setpp':
                 await setProfilePicture(sock, chatId, message);
                 break;
+            case userMessage.startsWith('.instagram') || userMessage.startsWith('.igdl') || userMessage.startsWith('.ig'):
+                await instagramCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.fb') || userMessage.startsWith('.facebook'):
+                await facebookCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.song') || userMessage.startsWith('.music'):
+                await playCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.play') || userMessage.startsWith('.mp3') || userMessage.startsWith('.ytmp3') || userMessage.startsWith('.yts'):
+                await songCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.tiktok') || userMessage.startsWith('.tt'):
+                await tiktokCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.gpt') || userMessage.startsWith('.gemini'):
+                await aiCommand(sock, chatId, message);
+                break;
             default:
                 if (isGroup) {
                     // Handle non-command group messages
@@ -795,24 +748,87 @@ async function handleMessages(sock, messageUpdate, printLog) {
     }
 }
 
+async function handleGroupParticipantUpdate(sock, update) {
+    try {
+        const { id, participants, action, author } = update;
+        
+        // Debug log for group updates
+       /* console.log('Group Update in Main:', {
+            id,
+            participants,
+            action,
+            author
+        });*/
+
+        // Check if it's a group
+        if (!id.endsWith('@g.us')) return;
+
+        // Handle promotion events
+        if (action === 'promote') {
+            await handlePromotionEvent(sock, id, participants, author);
+            return;
+        }
+        
+        // Handle demotion events
+        if (action === 'demote') {
+            await handleDemotionEvent(sock, id, participants, author);
+            return;
+        }
+
+        // Handle join events
+        if (action === 'add') {
+            // Check if welcome is enabled for this group
+            const isWelcomeEnabled = await isWelcomeOn(id);
+            if (!isWelcomeEnabled) return;
+
+            // Get welcome message from data
+            const data = JSON.parse(fs.readFileSync('./data/userGroupData.json'));
+            const welcomeData = data.welcome[id];
+            const welcomeMessage = welcomeData?.message || 'Welcome {user} to the group! 🎉';
+
+            // Send welcome message for each new participant
+            for (const participant of participants) {
+                const user = participant.split('@')[0];
+                const formattedMessage = welcomeMessage.replace('{user}', `@${user}`);
+                
+                await sock.sendMessage(id, {
+                    text: formattedMessage,
+                    mentions: [participant]
+                });
+            }
+        }
+        
+        // Handle leave events
+        if (action === 'remove') {
+            // Check if goodbye is enabled for this group
+            const isGoodbyeEnabled = await isGoodByeOn(id);
+            if (!isGoodbyeEnabled) return;
+
+            // Get goodbye message from data
+            const data = JSON.parse(fs.readFileSync('./data/userGroupData.json'));
+            const goodbyeData = data.goodbye[id];
+            const goodbyeMessage = goodbyeData?.message || 'Goodbye {user} 👋';
+
+            // Send goodbye message for each leaving participant
+            for (const participant of participants) {
+                const user = participant.split('@')[0];
+                const formattedMessage = goodbyeMessage.replace('{user}', `@${user}`);
+                
+                await sock.sendMessage(id, {
+                    text: formattedMessage,
+                    mentions: [participant]
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error in handleGroupParticipantUpdate:', error);
+    }
+}
+
 // Instead, export the handlers along with handleMessages
 module.exports = {
     handleMessages,
-    handleGroupParticipantUpdate: async (sock, update) => {
-        const { id, participants, action, author } = update;
-        /*  console.log('Group Update in Main:', {
-              id,
-              participants,
-              action,
-              author
-          }); */ // Add this debug log
-
-        if (action === 'promote') {
-            await handlePromotionEvent(sock, id, participants, author);
-        } else if (action === 'demote') {
-            await handleDemotionEvent(sock, id, participants, author);
-        }
-    },
+    handleGroupParticipantUpdate,
     handleStatus: async (sock, status) => {
         await handleStatusUpdate(sock, status);
     }
