@@ -1,23 +1,34 @@
-const { handleAntiBadwordCommand } = require('../lib/antibadword');
-const isAdminHelper = require('../lib/isAdmin');
+const { cmd } = require('../command');
+const config = require("../config");
 
-async function antibadwordCommand(sock, chatId, message, senderId, isSenderAdmin) {
-    try {
-        if (!isSenderAdmin) {
-            await sock.sendMessage(chatId, { text: '```For Group Admins Only!```' });
-            return;
-        }
+// Anti-Bad Words System
+cmd({
+  'on': "body"
+}, async (conn, m, store, {
+  from,
+  body,
+  isGroup,
+  isAdmins,
+  isBotAdmins,
+  reply,
+  sender
+}) => {
+  try {
+    const badWords = ["wtf", "mia", "xxx", "fuck", 'sex', "huththa", "pakaya", 'ponnaya', "hutto"];
 
-        // Extract match from message
-        const text = message.message?.conversation || 
-                    message.message?.extendedTextMessage?.text || '';
-        const match = text.split(' ').slice(1).join(' ');
-
-        await handleAntiBadwordCommand(sock, chatId, message, match);
-    } catch (error) {
-        console.error('Error in antibadword command:', error);
-        await sock.sendMessage(chatId, { text: '*Error processing antibadword command*' });
+    if (!isGroup || isAdmins || !isBotAdmins) {
+      return;
     }
-}
 
-module.exports = antibadwordCommand; 
+    const messageText = body.toLowerCase();
+    const containsBadWord = badWords.some(word => messageText.includes(word));
+
+    if (containsBadWord && config.ANTI_BAD_WORD === "true") {
+      await conn.sendMessage(from, { 'delete': m.key }, { 'quoted': m });
+      await conn.sendMessage(from, { 'text': "🚫 ⚠️ BAD WORDS NOT ALLOWED ⚠️ 🚫" }, { 'quoted': m });
+    }
+  } catch (error) {
+    console.error(error);
+    reply("An error occurred while processing the message.");
+  }
+});
