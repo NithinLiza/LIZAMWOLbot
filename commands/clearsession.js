@@ -7,7 +7,7 @@ const channelInfo = {
         forwardingScore: 999,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363161513685998@newsletter',
+            newsletterJid: '120363401516239182@newsletter',
             newsletterName: 'LIZAMWOL',
             serverMessageId: -1
         }
@@ -59,6 +59,10 @@ async function clearSessionCommand(sock, chatId, msg) {
 
         // Delete files
         for (const file of files) {
+            if (file === 'creds.json') {
+                // Skip creds.json file
+                continue;
+            }
             try {
                 const filePath = path.join(sessionDir, file);
                 fs.unlinkSync(filePath);
