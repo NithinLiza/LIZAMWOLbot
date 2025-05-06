@@ -35,7 +35,7 @@ async function helpCommand(sock, chatId, channelLink) {
     │
     │
 ╭────────❒ *GENERAL CMDS*➣
-│➣│▸ .help or .menu
+│➣│▸ .menu
 │➣│▸ .ping
 │➣│▸ .alive
 │➣│▸.tts <text>
@@ -173,6 +173,15 @@ async function helpCommand(sock, chatId, channelLink) {
 │➣│▸ .lnstagram 
 │➣│▸ .facebook
 ╰─────│
+    ─┬────❍ 
+╭─┴❍
+    │
+    │───❍─────❍❍➣
+    ╭────────❒ *INTELLIGENCE CMDS*➣
+    │➣│▸ .gpt
+    │➣│▸ .ai
+    │➣│▸ .gemini
+    ╰─────│
     ─┬────❍ 
 ╭─┴❍
     │
