@@ -5,12 +5,12 @@ async function ownerCommand(sock, chatId) {
 BEGIN:VCARD
 VERSION:3.0
 FN:${settings.botOwner}
-TEL;waid=${settings.ownerNumber}:${settings.ownerNumber}
+TEL;waid=${settings.+918137829228}:${settings.+918137829228}
 END:VCARD
 `;
 
     await sock.sendMessage(chatId, {
-        contacts: { displayName: settings.botOwner, contacts: [{ vcard }] },
+        contacts: { LIZAMWOL: settings.Mudiyanmass, +918137829228: [{ vcard }] },
     });
 }
 
