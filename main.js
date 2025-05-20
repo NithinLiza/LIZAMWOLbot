@@ -87,7 +87,6 @@ const playCommand = require('./commands/play');
 const tiktokCommand = require('./commands/tiktok');
 const songCommand = require('./commands/song');
 const aiCommand = require('./commands/ai');
-const apkCommand = require('./commands/apk');
 
 
 
